@@ -1,6 +1,6 @@
 
-from langchain_huggingface import HuggingFaceEndpoint,ChatHuggingFace , HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
+#from langchain_huggingface import HuggingFaceEndpoint,ChatHuggingFace , HuggingFaceEmbeddings
+#from langchain_community.vectorstores import FAISS
 import re 
 
 import json 
@@ -17,13 +17,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core.cache import cache
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import FAISS
-from langchain_core.prompts import PromptTemplate
+#from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
+#from langchain_text_splitters import RecursiveCharacterTextSplitter
+#from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+#from langchain_community.vectorstores import FAISS
+#from langchain_core.prompts import PromptTemplate
 from dotenv import load_dotenv
-from langchain_core.output_parsers import StrOutputParser
+#from langchain_core.output_parsers import StrOutputParser
 from upstash_redis import Redis
 
 
