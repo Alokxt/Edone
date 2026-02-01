@@ -48,6 +48,7 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 # Application definition
 
 INSTALLED_APPS = [
+    "corsheaders",
     'channels',
     'daphne',
     'django.contrib.admin',
@@ -58,7 +59,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
-    "corsheaders",
     'chatbot',
     'chatapp',
     'student',
@@ -107,6 +107,14 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+]
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
 ]
 
 
