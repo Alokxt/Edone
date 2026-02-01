@@ -14,6 +14,7 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+from corsheaders.defaults import default_headers
 
 import os 
 # Quick-start development settings - unsuitable for production
@@ -39,7 +40,7 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG')
+DEBUG = False
 
 ALLOWED_HOSTS = ["edone-t588.onrender.com",]
 
@@ -97,17 +98,10 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 
-CORS_ALLOW_HEADERS = [
-    "accept",
-    "accept-encoding",
+CORS_ALLOW_HEADERS = list(default_headers) + [
     "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
 ]
+
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
