@@ -37,10 +37,10 @@ from .serializer import *
 
 OTP_TTL = 300 
 from .tokens import email_verification_token
-client = OpenAI(
+'''client = OpenAI(
   base_url="https://openrouter.ai/api/v1",
   api_key=DEEPSEEK_API_KEY,
-)
+)'''
 @api_view(['POST'])
 @permission_classes([AllowAny])
 
@@ -343,7 +343,7 @@ def subtopics(request):
         return Response({"success":False,"error":e})
     
 
-
+"""
 def generate_test():
     prompt = '''
 You are an expert aptitude test paper generator used for competitive exams and placement assessments.
@@ -390,7 +390,7 @@ Rules:
 
 
 
-    return response.choices[0].message.content
+    return response.choices[0].message.content"""
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -416,7 +416,7 @@ def register_roadmap(request):
 @permission_classes([IsAuthenticated])
 def iq_test_page(request):
     try:
-        user_id = request.user.id 
+        """user_id = request.user.id 
         if not user_id:
             user_id = 3 
         user = get_object_or_404(User,id=user_id)
@@ -444,8 +444,8 @@ def iq_test_page(request):
 
             return Response({"success":True,"Quize_required":True,"Quiz":quize})
         
-        marks = test.score 
-        return Response({"success":True,"quiz_required":False,"Marks":marks})
+        marks = test.score """
+        return Response({"success":True,"quiz_required":False,"Marks":1})
     except Exception as e:
         return Response({"success":False,"error":e})
     

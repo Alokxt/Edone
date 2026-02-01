@@ -28,7 +28,7 @@ from upstash_redis import Redis
 
 
 load_dotenv()
-redis = Redis(url="https://well-mayfly-23243.upstash.io", token=os.getenv('REDIS_TOKEN'))
+'''redis = Redis(url="https://well-mayfly-23243.upstash.io", token=os.getenv('REDIS_TOKEN'))
 
 parser = StrOutputParser()
 
@@ -175,12 +175,13 @@ def extract_video_id(url):
         return parsed.path[1:]
 
     return None
+    '''
     
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def youtubevideo(request):
     try:
-        video_url = request.data.get('video_url','')
+        '''video_url = request.data.get('video_url','')
         lang = request.data.get('language')
         user = request.user 
 
@@ -230,9 +231,9 @@ def youtubevideo(request):
 
             },
             ex=30 * 60
-        )
+        )'''
 
-        return Response({'success':True,"Message":"Stored the session details","session_id":session_id})
+        return Response({'success':True,"Message":"Stored the session details","session_id":1})
     except Exception as e:
         return Response({'success':False,"Message":f"An error occurred {e}"})
 
@@ -243,7 +244,7 @@ def youtubevideo(request):
 @permission_classes([IsAuthenticated])
 def chatvideo(request):
     try:
-       session_id = request.data['session_id']
+       '''session_id = request.data['session_id']
        usr = request.user
        query = request.data['query']
 
@@ -267,9 +268,9 @@ def chatvideo(request):
 
        context = " ".join(t.page_content for t in ret)
 
-       ans = generate_chat_response(context,query)
+       ans = generate_chat_response(context,query)'''
 
-       return Response({'success':True,"data":ans})
+       return Response({'success':True,"data":1})
     
     except Exception as e:
         return Response({'success':False,"Message":f"An error occurred {e}"})
@@ -282,7 +283,7 @@ def clean_llm_json(text):
 @permission_classes([AllowAny])
 def quiz_generator(request):
     try:
-        topics = request.data.get('topics')
+        '''topics = request.data.get('topics')
         if len(topics) == 0:
             return Response({"success":False,"Message":"Give some topics"})
         docs = vectorR.similarity_search(
@@ -364,10 +365,10 @@ input_variables=['num_ques','content'],
     
 
         raw = chain.invoke({'content':ans,'num_ques':num_ques})
-        raw = clean_llm_json(raw)
+        raw = clean_llm_json(raw)'''
      
 
-        return Response({"success":True,"content":raw})
+        return Response({"success":True,"content":1})
     except Exception as e:
         return Response({"success": False, "error": str(e)})
 
