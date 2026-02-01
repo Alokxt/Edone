@@ -178,6 +178,12 @@ def extract_video_id(url):
     '''
     
 @api_view(["POST"])
+@permission_classes([AllowAny])
+def home(request):
+    return Response({'success':True,"Message":"Hello"})
+
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def youtubevideo(request):
     try:
