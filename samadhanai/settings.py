@@ -41,7 +41,8 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG')
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["edone-t588.onrender.com",]
+
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # Application definition
@@ -86,10 +87,15 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'samadhanai.urls'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:3000",  # your React frontend
-    "http://localhost:3000",
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://sage-gecko-d47eb2.netlify.app"
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    "https://sage-gecko-d47eb2.netlify.app"
+]
+
 
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -119,16 +125,7 @@ TEMPLATES = [
     },
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:3000",
-    "http://localhost:3000",
-]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:3000",
-    "http://localhost:3000",
-]
-CORS_ALLOW_ALL_ORIGINS = True
 
 WSGI_APPLICATION = 'samadhanai.wsgi.application'
 ASGI_APPLICATION = 'samadhanai.asgi.application'
