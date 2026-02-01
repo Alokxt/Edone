@@ -75,7 +75,7 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -93,10 +93,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://sage-gecko-d47eb2.netlify.app"
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "https://sage-gecko-d47eb2.netlify.app"
-]
-
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "authorization",
