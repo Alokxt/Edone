@@ -31,14 +31,9 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 
 FRONTEND_URL = "http://localhost:3000"
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'alokmanawat6@gmail.com'
-DEFAULT_FROM_EMAIL = 'alokmanawat6@gmail.com'
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+SENDGRID_API_KEY = os.environ["SENDGRID_API_KEY"]
+DEFAULT_FROM_EMAIL = "alokmanawat6@gmail.com"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
