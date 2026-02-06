@@ -75,31 +75,34 @@ def login_view(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def send_email_otp(request):
+    email = request.data.get("email")
+
+    if not email:
+        return Response({"message": "Email required"}, status=400)
+
+    if Myuser.objects.filter(email=email).exists():
+        return Response({"message": "Email already registered"}, status=400)
+
+    otp = str(random.randint(100000, 999999))
+
+    cache.set(f"email_otp:{email}", otp, OTP_TTL)
+    cache.set(f"email_verified:{email}", False, OTP_TTL)
     try:
-
-        email = request.data.get("email")
-
-        if not email:
-            return Response({"message": "Email required"}, status=400)
-
-        if Myuser.objects.filter(email=email).exists():
-            return Response({"message": "Email already registered"}, status=400)
-
-        otp = random.randint(100000, 999999)
-
-        cache.set(f"email_otp:{email}", otp, OTP_TTL)
-        cache.set(f"email_verified:{email}", False, OTP_TTL)
-
-        send_mail(
+        sent = send_mail(
             subject="Your verification code",
             message=f"Your OTP is {otp}. Valid for 5 minutes.",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[email],
         )
 
+        if sent == 0:
+            cache.delete(f"email_otp:{email}")
+            return Response({"success":False,"message": "Email failed to send"}, status=500)
         return Response({"success": True, "message": "OTP sent"})
     except Exception as e:
-        return Response({"success":False,"Message":f"An error occured , {e}"})
+        return Response({"success":False,"message":f"{e}"})
+
+        
     
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -108,21 +111,23 @@ def verify_email_otp(request):
 
         email = request.data.get("email")
         otp = request.data.get("otp")
+        if not email or not otp:
+            return Response({"message": "Email and OTP required"}, status=400)
 
         cached_otp = cache.get(f"email_otp:{email}")
 
         if not cached_otp:
             return Response({"message": "OTP expired"}, status=400)
 
-        if str(cached_otp) != str(otp):
+        if cached_otp != str(otp):
             return Response({"message": "Invalid OTP"}, status=400)
 
-        cache.set(f"email_verified:{email}", True, 300)
+        cache.set(f"email_verified:{email}", True, OTP_TTL)
         cache.delete(f"email_otp:{email}")
 
         return Response({"success": True, "message": "Email verified"})
     except Exception as e:
-        return Response({"success":False,"Message":"An error occured , {e}"})
+        return Response({"success":False,"Message":f"An error occured , {e}"})
 
 
 @api_view(['POST'])
