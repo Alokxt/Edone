@@ -178,14 +178,17 @@ def dash_board(request):
 
         usr = request.user
         myusr = Myuser.objects.filter(student=usr).first()
+        profile_url = None
+        if myusr and myusr.profile:
+            profile_url = request.build_absolute_uri(myusr.profile.url)
         
         details = {
             "Name":usr.username,
-            "profile": request.build_absolute_uri(myusr.profile.url) if myusr.profile is not None else None 
+            "profile": profile_url 
         }
-        return Response({'Success':True,'details':details})
+        return Response({'success':True,'details':details},status=200)
     except Exception as e:
-        return Response({'Success':False,'error':e})
+        return Response({'success':False,'error':str(e)},status=500)
 
 
 

@@ -1,8 +1,8 @@
 
-#from langchain_huggingface import HuggingFaceEndpoint,ChatHuggingFace , HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpoint,ChatHuggingFace 
 #from langchain_community.vectorstores import FAISS
 import re 
-
+from langchain_community.embeddings import HuggingFaceEmbeddings
 import json 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -17,18 +17,20 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core.cache import cache
-#from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
-#from langchain_text_splitters import RecursiveCharacterTextSplitter
-#from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-#from langchain_community.vectorstores import FAISS
-#from langchain_core.prompts import PromptTemplate
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import  ChatOpenAI
+from langchain_community.vectorstores import FAISS
+from langchain_core.prompts import PromptTemplate
 from dotenv import load_dotenv
-#from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers import StrOutputParser
 from upstash_redis import Redis
-
-
+from langchain_core.prompts import PromptTemplate
+from bytez import Bytez
+from functools import lru_cache
 load_dotenv()
-'''redis = Redis(url="https://well-mayfly-23243.upstash.io", token=os.getenv('REDIS_TOKEN'))
+bytez_api_key = os.environ["BYTEZ_API_KEY"]
+redis = Redis(url="https://well-mayfly-23243.upstash.io", token=os.getenv('REDIS_TOKEN'))
 
 parser = StrOutputParser()
 
@@ -37,19 +39,26 @@ client = OpenAI(
   api_key=DEEPSEEK_API_KEY,
 )
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="all-MiniLM-L6-v2"
-)
+@lru_cache()
+def get_embedding_model():
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+    return embeddings
 
-vectorR = FAISS.load_local(
-            "C:\\Users\\Nimisha Manawat\\OneDrive\\Desktop\\StudyBuddy\\samadhanai\\chatbot\\data2\\rag_index",
-            embeddings,
-            allow_dangerous_deserialization=True
-        )
+@lru_cache()
+def get_vectorr():
+   vectorR = FAISS.load_local( "/data2/rag_index", get_embedding_model(), allow_dangerous_deserialization=True )
+   return vectorR
+
 
 
 model = ChatOpenAI(model="tngtech/deepseek-r1t2-chimera:free",api_key=os.getenv("OPENROUTER_API_KEY"),   
     base_url="https://openrouter.ai/api/v1" ,temperature=0.2)
+
+
+
+        
 
 def generate_response(query,context,metadata):
     
@@ -110,7 +119,7 @@ def home(request):
         if query is None:
             return Response({'success':False,"Message":"Ask something"},status=500)
 
-         
+        vectorR = get_vectorr()
         docs = vectorR.similarity_search(
             query,
             k=2
@@ -175,19 +184,14 @@ def extract_video_id(url):
         return parsed.path[1:]
 
     return None
-    '''
     
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def home(request):
-    return Response({'success':True,"Message":"Hello"})
-
+ 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def youtubevideo(request):
     try:
-        '''video_url = request.data.get('video_url','')
+        video_url = request.data.get('video_url','')
         lang = request.data.get('language')
         user = request.user 
 
@@ -223,7 +227,7 @@ def youtubevideo(request):
 
         vectorstore = FAISS.from_documents(
             chunks,
-            embedding=embeddings
+            embedding=get_embedding_model()
         )
 
         vectorstore.save_local(session_dir)
@@ -237,9 +241,9 @@ def youtubevideo(request):
 
             },
             ex=30 * 60
-        )'''
+        )
 
-        return Response({'success':True,"Message":"Stored the session details","session_id":1})
+        return Response({'success':True,"Message":"Stored the session details","session_id":session_id})
     except Exception as e:
         return Response({'success':False,"Message":f"An error occurred {e}"})
 
@@ -250,7 +254,7 @@ def youtubevideo(request):
 @permission_classes([IsAuthenticated])
 def chatvideo(request):
     try:
-       '''session_id = request.data['session_id']
+       session_id = request.data['session_id']
        usr = request.user
        query = request.data['query']
 
@@ -267,16 +271,16 @@ def chatvideo(request):
        if session_id != old['session_id']:
            return Response({'success':False,"Message":"Different sessions ,previous session expired"})
        
-       vector_store = FAISS.load_local(vector_path,embeddings=embeddings,allow_dangerous_deserialization=True)
+       vector_store = FAISS.load_local(vector_path,embeddings=get_embedding_model(),allow_dangerous_deserialization=True)
        retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
        ret = retriever.invoke(query)
 
        context = " ".join(t.page_content for t in ret)
 
-       ans = generate_chat_response(context,query)'''
+       ans = generate_chat_response(context,query)
 
-       return Response({'success':True,"data":1})
+       return Response({'success':True,"data":ans})
     
     except Exception as e:
         return Response({'success':False,"Message":f"An error occurred {e}"})
@@ -289,9 +293,10 @@ def clean_llm_json(text):
 @permission_classes([AllowAny])
 def quiz_generator(request):
     try:
-        '''topics = request.data.get('topics')
+        topics = request.data.get('topics')
         if len(topics) == 0:
             return Response({"success":False,"Message":"Give some topics"})
+        vectorR = get_vectorr()
         docs = vectorR.similarity_search(
             topics,
             k=2
@@ -371,10 +376,10 @@ input_variables=['num_ques','content'],
     
 
         raw = chain.invoke({'content':ans,'num_ques':num_ques})
-        raw = clean_llm_json(raw)'''
+        raw = clean_llm_json(raw)
      
 
-        return Response({"success":True,"content":1})
+        return Response({"success":True,"content":raw})
     except Exception as e:
         return Response({"success": False, "error": str(e)})
 
