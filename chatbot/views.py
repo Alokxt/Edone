@@ -1,8 +1,7 @@
 
-from langchain_huggingface import HuggingFaceEndpoint,ChatHuggingFace 
-#from langchain_community.vectorstores import FAISS
+
+from langchain_community.vectorstores import FAISS
 import re 
-from langchain_community.embeddings import HuggingFaceEmbeddings
 import json 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -20,7 +19,6 @@ from django.core.cache import cache
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import  ChatOpenAI
-from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
 from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
