@@ -28,6 +28,7 @@ from upstash_redis import Redis
 from langchain_core.prompts import PromptTemplate
 from bytez import Bytez
 from functools import lru_cache
+from .embds import get_embeddings
 load_dotenv()
 bytez_api_key = os.environ["BYTEZ_API_KEY"]
 redis = Redis(url="https://well-mayfly-23243.upstash.io", token=os.getenv('REDIS_TOKEN'))
@@ -39,16 +40,10 @@ client = OpenAI(
   api_key=DEEPSEEK_API_KEY,
 )
 
-@lru_cache()
-def get_embedding_model():
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
-    return embeddings
 
 @lru_cache()
 def get_vectorr():
-   vectorR = FAISS.load_local( "/data2/rag_index", get_embedding_model(), allow_dangerous_deserialization=True )
+   vectorR = FAISS.load_local( "/data2/rag_index2", get_embeddings(), allow_dangerous_deserialization=True )
    return vectorR
 
 
@@ -227,7 +222,7 @@ def youtubevideo(request):
 
         vectorstore = FAISS.from_documents(
             chunks,
-            embedding=get_embedding_model()
+            embedding=get_embeddings()
         )
 
         vectorstore.save_local(session_dir)
@@ -271,7 +266,7 @@ def chatvideo(request):
        if session_id != old['session_id']:
            return Response({'success':False,"Message":"Different sessions ,previous session expired"})
        
-       vector_store = FAISS.load_local(vector_path,embeddings=get_embedding_model(),allow_dangerous_deserialization=True)
+       vector_store = FAISS.load_local(vector_path,embeddings=get_embeddings(),allow_dangerous_deserialization=True)
        retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
        ret = retriever.invoke(query)
