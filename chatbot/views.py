@@ -1,6 +1,3 @@
-
-
-from langchain_community.vectorstores import FAISS
 import re 
 import json 
 from django.views.decorators.csrf import csrf_exempt
@@ -17,21 +14,40 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core.cache import cache
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import  ChatOpenAI
-from langchain_core.prompts import PromptTemplate
 from dotenv import load_dotenv
-from langchain_core.output_parsers import StrOutputParser
 from upstash_redis import Redis
-from langchain_core.prompts import PromptTemplate
 from bytez import Bytez
 from functools import lru_cache
 from .embds import get_embeddings
+
 load_dotenv()
 bytez_api_key = os.environ["BYTEZ_API_KEY"]
 redis = Redis(url="https://well-mayfly-23243.upstash.io", token=os.getenv('REDIS_TOKEN'))
 
-parser = StrOutputParser()
+def get_vectorstores():
+    from langchain_community.vectorstores import FAISS
+    return FAISS
+
+def get_textsplitter():
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    return RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=150)
+
+def get_chatmodel():
+    from langchain_openai import  ChatOpenAI
+    model = ChatOpenAI(model="tngtech/deepseek-r1t2-chimera:free",api_key=os.getenv("OPENROUTER_API_KEY"),   
+    base_url="https://openrouter.ai/api/v1" ,temperature=0.2)
+    return model 
+
+def get_prompttemp():
+    from langchain_core.prompts import PromptTemplate
+    return PromptTemplate
+
+def get_strparser():
+    from langchain_core.output_parsers import StrOutputParser
+    return StrOutputParser
+
+
+parser = get_strparser()
 
 client = OpenAI(
   base_url="https://openrouter.ai/api/v1",
@@ -41,20 +57,13 @@ client = OpenAI(
 
 @lru_cache()
 def get_vectorr():
+   FAISS = get_vectorstores()
    vectorR = FAISS.load_local( "/data2/rag_index2", get_embeddings(), allow_dangerous_deserialization=True )
    return vectorR
 
 
-
-model = ChatOpenAI(model="tngtech/deepseek-r1t2-chimera:free",api_key=os.getenv("OPENROUTER_API_KEY"),   
-    base_url="https://openrouter.ai/api/v1" ,temperature=0.2)
-
-
-
-        
-
 def generate_response(query,context,metadata):
-    
+    PromptTemplate = get_prompttemp()
     prompt = PromptTemplate(
         template="""
     You are an academic assistant for undergraduate core engineering subjects.
@@ -88,7 +97,7 @@ Mention standard textbooks or academic sources (no URLs).
         input_variables=['context','query','metadata'],
        
     )
- 
+    model = get_chatmodel()
     chain = prompt | model | parser 
    
     
@@ -132,6 +141,7 @@ def home(request):
         return Response({"error":f"something went wrong {e}"},status=400)
     
 def generate_chat_response(context,query):
+    PromptTemplate = get_prompttemp()
     video_rag_prompt = PromptTemplate(
         input_variables=["context", "question"],
         template="""
@@ -160,7 +170,7 @@ def generate_chat_response(context,query):
     Now provide a clear, relevant, and grounded explanation.
     """
     )
-
+    model = get_chatmodel()
     chain = video_rag_prompt | model | parser 
     result = chain.invoke({'context':context,'question':query})
     return result
@@ -213,11 +223,11 @@ def youtubevideo(request):
         
         transcript = " ".join(t.text for t in transcript_list)
 
-        splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=150)
+        splitter = get_textsplitter()
         chunks = splitter.create_documents([transcript])
 
         
-
+        FAISS = get_vectorstores()
         vectorstore = FAISS.from_documents(
             chunks,
             embedding=get_embeddings()
@@ -263,7 +273,7 @@ def chatvideo(request):
        vector_path = old["vector_path"]
        if session_id != old['session_id']:
            return Response({'success':False,"Message":"Different sessions ,previous session expired"})
-       
+       FAISS = get_vectorstores()
        vector_store = FAISS.load_local(vector_path,embeddings=get_embeddings(),allow_dangerous_deserialization=True)
        retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
@@ -303,7 +313,7 @@ def quiz_generator(request):
       
       
         ans  = generate_response(topics,context,metadata)
-       
+        PromptTemplate = get_prompttemp()
         temp = PromptTemplate(
             template="""
 You are an AI exam paper generator for an Engineering-level technical assessment.
@@ -363,6 +373,7 @@ Return ONLY valid JSON. Do not include markdown, code fences, or any text outsid
 """,
 input_variables=['num_ques','content'],
         )
+        model = get_chatmodel()
         chain = temp | model | parser 
 
    
