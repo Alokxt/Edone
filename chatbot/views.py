@@ -41,8 +41,15 @@ def get_chatmodel():
 def get_prompttemp():
     from langchain_core.prompts import PromptTemplate
     return PromptTemplate
+def get_strparser():
+    from langchain_core.output_parsers import StrOutputParser
+    parser = StrOutputParser()
+    return parser
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent
 
+Knowledge_PATH = BASE_DIR / "data2" / "rag_index2"
 
 
 client = OpenAI(
@@ -54,7 +61,7 @@ client = OpenAI(
 @lru_cache()
 def get_vectorr():
    FAISS = get_vectorstores()
-   vectorR = FAISS.load_local( "/data2/rag_index2", get_embeddings(), allow_dangerous_deserialization=True )
+   vectorR = FAISS.load_local( str(Knowledge_PATH), get_embeddings(), allow_dangerous_deserialization=True )
    return vectorR
 
 
@@ -94,8 +101,8 @@ Mention standard textbooks or academic sources (no URLs).
        
     )
     model = get_chatmodel()
-    
-    chain = prompt | model 
+    parser = get_strparser()
+    chain = prompt | model | parser
    
     
 
@@ -114,6 +121,7 @@ def home(request):
     try:
         
         query = request.data.get('query')
+       
       
         if query is None:
             return Response({'success':False,"Message":"Ask something"},status=400)
@@ -169,8 +177,8 @@ def generate_chat_response(context,query):
     """
     )
     model = get_chatmodel()
-   
-    chain = video_rag_prompt | model 
+    parser = get_strparser()
+    chain = video_rag_prompt | model | parser
     result = chain.invoke({'context':context,'question':query})
     return result
 
@@ -297,6 +305,7 @@ def clean_llm_json(text):
 @permission_classes([AllowAny])
 def quiz_generator(request):
     try:
+
         data = request.data 
         topics = data.get('topics','')
      
@@ -378,8 +387,8 @@ Return ONLY valid JSON. Do not include markdown, code fences, or any text outsid
 input_variables=['num_ques','content'],
         )
         model = get_chatmodel()
-      
-        chain = temp | model 
+        parser = get_strparser()
+        chain = temp | model | parser
 
    
     
