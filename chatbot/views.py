@@ -98,8 +98,8 @@ Mention standard textbooks or academic sources (no URLs).
        
     )
     model = get_chatmodel()
-    parser = get_strparser()
-    chain = prompt | model | parser 
+   
+    chain = prompt | model 
    
     
 
@@ -139,7 +139,7 @@ def home(request):
         
         return Response({"answer":ans},status=201)
     except Exception as e:
-        return Response({"error":f"something went wrong {e}"},status=400)
+        return Response({"error":f"something went wrong {e}"},status=500)
     
 def generate_chat_response(context,query):
     PromptTemplate = get_prompttemp()
