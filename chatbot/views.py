@@ -204,7 +204,7 @@ def youtubevideo(request):
         data = request.data 
         video_url = data.get('video_url','')
         lang = data.get('language')
-        user = user 
+        user = request.user 
 
         redis_key = f"yt_session:{user.id}"
 
@@ -301,6 +301,7 @@ def clean_llm_json(text):
     text = re.sub(r"```json|```", "", text).strip()
     return json.loads(text)
   
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def quiz_generator(request):
