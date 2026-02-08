@@ -172,8 +172,8 @@ def generate_chat_response(context,query):
     """
     )
     model = get_chatmodel()
-    parser = get_strparser()
-    chain = video_rag_prompt | model | parser 
+   
+    chain = video_rag_prompt | model 
     result = chain.invoke({'context':context,'question':query})
     return result
 
@@ -376,8 +376,8 @@ Return ONLY valid JSON. Do not include markdown, code fences, or any text outsid
 input_variables=['num_ques','content'],
         )
         model = get_chatmodel()
-        parser = get_strparser()
-        chain = temp | model | parser 
+      
+        chain = temp | model 
 
    
     
