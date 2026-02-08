@@ -112,8 +112,8 @@ Mention standard textbooks or academic sources (no URLs).
 @permission_classes([AllowAny])
 def home(request):
     try:
-        data = json.loads(request.body)
-        query = data.get('query')
+        
+        query = request.data.get('query')
       
         if query is None:
             return Response({'success':False,"Message":"Ask something"},status=400)
@@ -193,7 +193,7 @@ def extract_video_id(url):
 @permission_classes([IsAuthenticated])
 def youtubevideo(request):
     try:
-        data = json.loads(request.body)
+        data = request.data 
         video_url = data.get('video_url','')
         lang = data.get('language')
         user = user 
@@ -257,7 +257,7 @@ def youtubevideo(request):
 @permission_classes([IsAuthenticated])
 def chatvideo(request):
     try:
-       data = json.loads(request.body)
+       data = request.data 
        session_id = data['session_id']
        usr = request.user
        query = data['query']
@@ -297,7 +297,7 @@ def clean_llm_json(text):
 @permission_classes([AllowAny])
 def quiz_generator(request):
     try:
-        data = json.loads(request.body)
+        data = request.data 
         topics = data.get('topics','')
      
         if len(topics) == 0:
