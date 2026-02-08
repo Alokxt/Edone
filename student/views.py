@@ -36,10 +36,14 @@ from .serializer import *
 
 OTP_TTL = 300 
 from .tokens import email_verification_token
-'''client = OpenAI(
-  base_url="https://openrouter.ai/api/v1",
-  api_key=DEEPSEEK_API_KEY,
-)'''
+
+def get_client():
+    client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=DEEPSEEK_API_KEY,
+    )
+    return client
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 
@@ -350,7 +354,7 @@ def subtopics(request):
         return Response({"success":False,"error":e})
     
 
-"""
+
 def generate_test():
     prompt = '''
 You are an expert aptitude test paper generator used for competitive exams and placement assessments.
@@ -384,7 +388,7 @@ Rules:
     ]
 }
 '''
-
+    client = get_client()
     response = client.chat.completions.create(
         model="tngtech/deepseek-r1t2-chimera:free",
         messages=[
@@ -397,7 +401,7 @@ Rules:
 
 
 
-    return response.choices[0].message.content"""
+    return response.choices[0].message.content
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -423,9 +427,8 @@ def register_roadmap(request):
 @permission_classes([IsAuthenticated])
 def iq_test_page(request):
     try:
-        """user_id = request.user.id 
-        if not user_id:
-            user_id = 3 
+        user_id = request.user.id 
+        
         user = get_object_or_404(User,id=user_id)
         stdnt = get_object_or_404(Myuser,student=user)
         test,created = iq_test.objects.get_or_create(student=stdnt,defaults={
@@ -451,7 +454,7 @@ def iq_test_page(request):
 
             return Response({"success":True,"Quize_required":True,"Quiz":quize})
         
-        marks = test.score """
+        marks = test.score 
         return Response({"success":True,"quiz_required":False,"Marks":1})
     except Exception as e:
         return Response({"success":False,"error":e})
