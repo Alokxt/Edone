@@ -98,8 +98,8 @@ Mention standard textbooks or academic sources (no URLs).
        
     )
     model = get_chatmodel()
-   
-    chain = prompt | model 
+    parser = get_strparser()
+    chain = prompt | model | parser 
    
     
 
@@ -116,11 +116,11 @@ Mention standard textbooks or academic sources (no URLs).
 @permission_classes([AllowAny])
 def home(request):
     try:
-        
-        query = request.data.get('query')
+        data = json.loads(request.body)
+        query = data.get('query')
       
         if query is None:
-            return Response({'success':False,"Message":"Ask something"},status=500)
+            return Response({'success':False,"Message":"Ask something"},status=400)
 
         vectorR = get_vectorr()
         docs = vectorR.similarity_search(
@@ -134,7 +134,8 @@ def home(request):
         metadata = docs[0].metadata
       
       
-        ans  = generate_response(query,context,metadata)
+        #ans  = generate_response(query,context,metadata)
+        ans = "i dont know buddy"
        
         
         return Response({"answer":ans},status=201)
@@ -172,8 +173,8 @@ def generate_chat_response(context,query):
     """
     )
     model = get_chatmodel()
-   
-    chain = video_rag_prompt | model 
+    parser = get_strparser()
+    chain = video_rag_prompt | model | parser
     result = chain.invoke({'context':context,'question':query})
     return result
 
@@ -196,9 +197,10 @@ def extract_video_id(url):
 @permission_classes([IsAuthenticated])
 def youtubevideo(request):
     try:
-        video_url = request.data.get('video_url','')
-        lang = request.data.get('language')
-        user = request.user 
+        data = json.loads(request.body)
+        video_url = data.get('video_url','')
+        lang = data.get('language')
+        user = user 
 
         redis_key = f"yt_session:{user.id}"
 
@@ -259,9 +261,10 @@ def youtubevideo(request):
 @permission_classes([IsAuthenticated])
 def chatvideo(request):
     try:
-       session_id = request.data['session_id']
+       data = json.loads(request.body)
+       session_id = data['session_id']
        usr = request.user
-       query = request.data['query']
+       query = data['query']
 
 
 
@@ -298,15 +301,18 @@ def clean_llm_json(text):
 @permission_classes([AllowAny])
 def quiz_generator(request):
     try:
-        topics = request.data.get('topics')
+        data = json.loads(request.body)
+        topics = data.get('topics','')
+     
         if len(topics) == 0:
-            return Response({"success":False,"Message":"Give some topics"})
+            return Response({"success":False,"Message":"Give some topics"},status=400)
         vectorR = get_vectorr()
         docs = vectorR.similarity_search(
             topics,
             k=2
         )
-        num_ques = request.data.get('num_ques')
+        num_ques = data.get('num_ques')
+        num_ques = int(num_ques)
         print(topics)
         print(num_ques)
 
@@ -376,8 +382,8 @@ Return ONLY valid JSON. Do not include markdown, code fences, or any text outsid
 input_variables=['num_ques','content'],
         )
         model = get_chatmodel()
-      
-        chain = temp | model 
+        parser = get_strparser()
+        chain = temp | model | parser
 
    
     
@@ -388,7 +394,7 @@ input_variables=['num_ques','content'],
 
         return Response({"success":True,"content":raw})
     except Exception as e:
-        return Response({"success": False, "error": str(e)})
+        return Response({"success": False, "error": str(e)},status=500)
 
 
 
