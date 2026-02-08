@@ -42,10 +42,6 @@ def get_prompttemp():
     from langchain_core.prompts import PromptTemplate
     return PromptTemplate
 
-def get_strparser():
-    from langchain_core.output_parsers import StrOutputParser
-    return StrOutputParser
-
 
 
 
@@ -98,8 +94,8 @@ Mention standard textbooks or academic sources (no URLs).
        
     )
     model = get_chatmodel()
-    parser = get_strparser()
-    chain = prompt | model | parser 
+    
+    chain = prompt | model 
    
     
 
@@ -134,8 +130,8 @@ def home(request):
         metadata = docs[0].metadata
       
       
-        #ans  = generate_response(query,context,metadata)
-        ans = "i dont know buddy"
+        ans  = generate_response(query,context,metadata)
+        
        
         
         return Response({"answer":ans},status=201)
@@ -173,8 +169,8 @@ def generate_chat_response(context,query):
     """
     )
     model = get_chatmodel()
-    parser = get_strparser()
-    chain = video_rag_prompt | model | parser
+   
+    chain = video_rag_prompt | model 
     result = chain.invoke({'context':context,'question':query})
     return result
 
@@ -382,8 +378,8 @@ Return ONLY valid JSON. Do not include markdown, code fences, or any text outsid
 input_variables=['num_ques','content'],
         )
         model = get_chatmodel()
-        parser = get_strparser()
-        chain = temp | model | parser
+      
+        chain = temp | model 
 
    
     
