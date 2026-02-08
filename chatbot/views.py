@@ -47,7 +47,7 @@ def get_strparser():
     return StrOutputParser
 
 
-parser = get_strparser()
+
 
 client = OpenAI(
   base_url="https://openrouter.ai/api/v1",
@@ -98,6 +98,7 @@ Mention standard textbooks or academic sources (no URLs).
        
     )
     model = get_chatmodel()
+    parser = get_strparser()
     chain = prompt | model | parser 
    
     
@@ -171,6 +172,7 @@ def generate_chat_response(context,query):
     """
     )
     model = get_chatmodel()
+    parser = get_strparser()
     chain = video_rag_prompt | model | parser 
     result = chain.invoke({'context':context,'question':query})
     return result
@@ -374,6 +376,7 @@ Return ONLY valid JSON. Do not include markdown, code fences, or any text outsid
 input_variables=['num_ques','content'],
         )
         model = get_chatmodel()
+        parser = get_strparser()
         chain = temp | model | parser 
 
    
