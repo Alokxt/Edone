@@ -38,7 +38,7 @@ DEFAULT_FROM_EMAIL = "alokmanawat6@gmail.com"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["edone-t588.onrender.com",]
+ALLOWED_HOSTS = ["edone-t588.onrender.com","localhost", "127.0.0.1"]
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 

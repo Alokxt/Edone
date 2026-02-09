@@ -38,6 +38,16 @@ def get_chatmodel():
     base_url="https://openrouter.ai/api/v1" ,temperature=0.2)
     return model 
 
+def get_groqmodel():
+    from langchain_groq import ChatGroq
+    model = ChatGroq(
+        model_name="openai/gpt-oss-20b",
+        api_key=os.environ["GROQ_API_KEY"],
+        temperature=0.7
+    )
+    return model
+
+
 def get_prompttemp():
     from langchain_core.prompts import PromptTemplate
     return PromptTemplate
@@ -100,7 +110,8 @@ Mention standard textbooks or academic sources (no URLs).
         input_variables=['context','query','metadata'],
        
     )
-    model = get_chatmodel()
+    #model = get_chatmodel()
+    model = get_groqmodel()
     parser = get_strparser()
     chain = prompt | model | parser
    
@@ -176,7 +187,8 @@ def generate_chat_response(context,query):
     Now provide a clear, relevant, and grounded explanation.
     """
     )
-    model = get_chatmodel()
+    #model = get_chatmodel()
+    model = get_groqmodel()
     parser = get_strparser()
     chain = video_rag_prompt | model | parser
     result = chain.invoke({'context':context,'question':query})
@@ -387,7 +399,8 @@ Return ONLY valid JSON. Do not include markdown, code fences, or any text outsid
 """,
 input_variables=['num_ques','content'],
         )
-        model = get_chatmodel()
+        #model = get_chatmodel()
+        model = get_groqmodel()
         parser = get_strparser()
         chain = temp | model | parser
 
