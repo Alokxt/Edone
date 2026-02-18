@@ -53,6 +53,7 @@ def login_view(request):
             data = json.loads(request.body)
             username = data.get('username')
             password = data.get('password')
+           
             user = authenticate(username = username,password=password)
            
             if user is not None:
@@ -197,7 +198,7 @@ def dash_board(request):
 
 
 
-# Create your views here.
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -231,8 +232,6 @@ def get_roadmap(request):
     return Response({'success':True,'roadmap':maps},status=200)    
     
     
-
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_complete(request):

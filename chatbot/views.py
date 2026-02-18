@@ -17,8 +17,13 @@ from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 from dotenv import load_dotenv
 from upstash_redis import Redis
 from bytez import Bytez
+import pandas as pd 
 from functools import lru_cache
 from .embds import get_embeddings
+from .getqs import get_matchs 
+import numpy as np 
+import hashlib
+import pickle
 
 load_dotenv()
 bytez_api_key = os.environ["BYTEZ_API_KEY"]
@@ -60,12 +65,38 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 
 Knowledge_PATH = BASE_DIR / "data2" / "rag_index2"
+Question_PATH = BASE_DIR / "data2" / "leetcode_dataset - lc.csv"
+"""
+EMBEDDING_DIM = 768
+INDEX_FILE = BASE_DIR / "data2" / "semantic_cache.index"
+MAX_EMBEDDINGS = 100
 
+def get_faiss_index():
+    faiss = get_vectorstores()
+    if os.path.exists(INDEX_FILE):
+        faiss_index = faiss.read_index(INDEX_FILE)
+        return faiss_index
+    else:
+        base_index = faiss.IndexFlatL2(EMBEDDING_DIM)
+        faiss_index = faiss.IndexIDMap(base_index)
+        return faiss_index
+
+
+VECTOR_ID_KEY = "semantic:vector_id_counter"
+VECTOR_QUEUE_KEY = "semantic:vector_queue"
+"""
+
+q_bank = pd.read_csv(Question_PATH)
 
 client = OpenAI(
   base_url="https://openrouter.ai/api/v1",
   api_key=DEEPSEEK_API_KEY,
 )
+def normalize_query(query: str) -> str:
+    return query.strip().lower()
+
+def hash_query(query: str) -> str:
+    return hashlib.sha256(query.encode()).hexdigest()
 
 
 @lru_cache()
@@ -73,6 +104,82 @@ def get_vectorr():
    FAISS = get_vectorstores()
    vectorR = FAISS.load_local( str(Knowledge_PATH), get_embeddings(), allow_dangerous_deserialization=True )
    return vectorR
+
+def check_exact_cache(query: str):
+    normalized = normalize_query(query)
+    key = f"exact:{hash_query(normalized)}"
+
+    response = redis.get(key)
+    if response:
+        return response
+
+    return None
+
+def store_exact_cache(query: str, response: str):
+    normalized = normalize_query(query)
+    key = f"exact:{hash_query(normalized)}"
+
+    redis.setex(key, 60 * 60 * 24, response)
+
+
+"""def check_semantic_cache(query: str):
+    faiss_index = get_faiss_index()
+    if faiss_index.ntotal == 0:
+        return None
+
+    embedding = np.array([get_embeddings(query)]).astype("float32")
+
+    distances, indices = faiss_index.search(embedding, 1)
+
+    best_distance = distances[0][0]
+    best_id = indices[0][0]
+
+    if best_id == -1:
+        return None
+
+    similarity = 1 / (1 + best_distance)
+
+    if similarity >= 0.90:
+        cached_response = redis.get(f"semantic:response:{best_id}")
+        if cached_response:
+            return cached_response
+
+    return None
+
+
+def store_semantic_cache(query: str, response: str):
+    embedding = np.array([get_embeddings(query)]).astype("float32")
+
+    
+    vector_id = redis.incr(VECTOR_ID_KEY)
+
+    faiss_index = get_faiss_index()
+    faiss = get_vectorstores()
+  
+    faiss_index.add_with_ids(
+        embedding,
+        np.array([vector_id], dtype=np.int64)
+    )
+
+    redis.set(f"semantic:response:{vector_id}", response)
+
+ 
+    redis.rpush(VECTOR_QUEUE_KEY, vector_id)
+
+    total_vectors = faiss_index.ntotal
+    if total_vectors > MAX_EMBEDDINGS:
+        oldest_id = redis.lpop(VECTOR_QUEUE_KEY)
+
+        if oldest_id:
+            oldest_id = int(oldest_id)
+
+            faiss_index.remove_ids(
+                np.array([oldest_id], dtype=np.int64)
+            )
+
+            redis.delete(f"semantic:response:{oldest_id}")
+
+    faiss.write_index(faiss_index, INDEX_FILE)"""
 
 
 def generate_response(query,context,metadata):
@@ -122,9 +229,178 @@ Mention standard textbooks or academic sources (no URLs).
     return raw
     
 
-    
+def get_question(idx):
+    PromptTemplate = get_prompttemp()
+    pt1 = PromptTemplate(
+    template="""
+System Prompt: Interviewer Mode (Strict Structured Output)
+
+You are a strict technical interviewer conducting a real Data Structures and Algorithms interview.
+
+Your responsibility is to present the provided question in a professional interview format.
 
 
+{question}
+
+Behavior Rules:
+
+1.Reformulate the provided question clearly and formally.
+
+2. Do NOT solve the problem.
+
+3.Do NOT reveal the topic name explicitly.
+
+4. You may include 1 or 2 examples ONLY if you are fully certain they are correct.
+
+Each example must include:
+
+1. Input
+
+2. Output
+
+Brief explanation (optional but concise)
+
+1 . You may add a subtle hint if helpful, but:
+
+2. Do NOT reveal the algorithm directly.
+
+3. Do NOT describe the exact technique.
+
+4. Do NOT provide pseudocode or solution steps.
+
+#End by asking the candidate to:
+
+->Explain their approach first.
+
+->Discuss time and space complexity.
+
+Mention edge cases.
+
+Tone Requirements:
+
+Professional
+
+Concise
+
+Neutral
+
+Interview-style
+
+No emojis
+
+No excessive verbosity
+
+Strict Output Format:
+
+You MUST return output in valid JSON format.
+
+Everything (problem statement, examples, constraints, hint, and final instruction to candidate) must be inside a single key named:
+
+{{
+"problem": "FULL formatted interview question text here"
+}}
+
+Do not return anything outside this JSON.
+Do not add extra keys.
+Do not include explanations outside the JSON.
+
+The entire formatted interview question must be stored inside the string value of "problem".
+
+""",
+input_variables=['question']
+
+)
+    question = q_bank.iloc[idx]["description"]
+    model = get_groqmodel()
+    parser = get_strparser()
+    chain = pt1 | model | parser 
+    ans = chain.invoke({"question":question})
+    return ans 
+
+def get_evaluation(idx,resp):
+    question = q_bank.iloc[idx]["description"]
+    PromptTemplate = get_prompttemp()
+    pt2 = PromptTemplate(
+        template="""
+You are a strict technical interviewer evaluating a candidate in a Data Structures and Algorithms interview.
+
+You will be given:
+
+The original interview question : {question}
+
+The candidate’s response (approach and explanation): {resp}
+
+Your responsibilities:
+
+Carefully evaluate the candidate’s response.
+
+Determine whether the core idea is correct.
+
+Assess:
+
+Logical correctness
+
+Efficiency awareness
+
+Handling of edge cases
+
+Clarity of explanation
+
+If the solution is partially correct, clearly explain what is missing.
+
+If the approach is incorrect, explain why.
+
+Be objective and precise.
+
+Do NOT rewrite the full solution.
+
+Do NOT reveal the exact optimal solution unless absolutely necessary for clarity.
+
+Generate one relevant follow-up question:
+
+It must relate to the same problem.
+
+It should increase depth (optimization, edge case, constraint change, or alternative approach).
+
+It must not reveal the topic name explicitly.
+
+Scoring Rules:
+
+Score must be an integer from 0 to 10.
+
+9–10: Strong and near-optimal.
+
+6–8: Mostly correct but missing depth or edge cases.
+
+3–5: Partially correct with significant gaps.
+
+0–2: Incorrect or fundamentally flawed.
+
+Strict Output Format:
+
+Return ONLY valid JSON in this exact structure:
+
+{{
+"insights": {{
+"explaination": "concise evaluation of the candidate’s response. Should not be more than 2-3 sentences.",
+"score": "integer between 0 and 10"
+}},
+"followup": "A single, clear follow-up interview question."
+}}
+
+Do not include anything outside this JSON.
+Do not add extra keys.
+Ensure the JSON is valid.
+""",
+input_variables=["question","resp"]
+)
+    model = get_groqmodel()
+    parser = get_strparser()
+    chain = pt2 | model | parser 
+    rep = chain.invoke({"question":question,"resp":resp})
+    return rep 
+
+"""
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -156,6 +432,44 @@ def home(request):
         return Response({"answer":ans},status=201)
     except Exception as e:
         return Response({"error":f"something went wrong {e}"},status=500)
+"""
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def chatbot_api(request):
+    try:
+        query = request.data.get("query")
+
+        if not query:
+            return Response({"success": False, "error": "Query required"})
+
+        
+        exact_response = check_exact_cache(query)
+        if exact_response:
+            return Response({"success": True, "answer": exact_response, "cache": "exact"})
+
+
+        vectorR = get_vectorr()
+        docs = vectorR.similarity_search(
+            query,
+            k=2
+        )
+
+        
+        context = " ".join(x.page_content for x in docs )
+        metadata = docs[0].metadata
+        llm_response = generate_response(query,context,metadata)
+
+        
+        store_exact_cache(query, llm_response)
+        #store_semantic_cache(query, llm_response)
+
+        return Response({"success": True, "answer": llm_response, "cache": "new"})
+    except Exception as e:
+        print(e)
+        return Response({"success":False,"error":f"{e}"},status=500)
+
     
 def generate_chat_response(context,query):
     PromptTemplate = get_prompttemp()
@@ -272,7 +586,6 @@ def youtubevideo(request):
 
 
 
-  
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def chatvideo(request):
@@ -281,8 +594,6 @@ def chatvideo(request):
        session_id = data['session_id']
        usr = request.user
        query = data['query']
-
-
 
        redis_key = f"yt_session:{usr.id}"
        old = redis.get(redis_key)
@@ -416,4 +727,109 @@ input_variables=['num_ques','content'],
         return Response({"success": False, "error": str(e)},status=500)
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def Interview_simulator(request):
+    try:
+        data = request.data 
+        user = request.user 
+        key = f"interviewkey_{user.id}"
+        insight_key = f"Insights_{user.id}"
+        old = redis.hgetall(key)
+        
+        if old:
+            pos = int(redis.hget(key,"current_pos"))
+            if pos > 3:
+                scores = int(redis.hget(key,"scores"))
+                insights = [json.loads(i) for i in redis.lrange(insight_key, 0, -1)]
+                if scores is None:
+                    scores = 25
+                content = {
+                    "interview_completed":True,
+                    "score":scores,
+                    "insights":insights
+                }
+                redis.delete(key)
+                redis.delete(insight_key)
+                
+                return Response({"success":True,"data":content})
+            
+            q_key = f"q{pos}_index"
+            q_state = f"q{pos}_state"
+           
+            stat = old[q_state]
+            idx = int(old[q_key])
+            
+            if stat == "start":
+                content = get_question(idx)
+                content = json.loads(content)
+                redis.hset(key,q_state,"attempted")
+                return Response({'success':True,"data":content})
+                
+            elif stat == "attempted":
+                if "answer" not in data:
+                    redis.delete(key)
+                    redis.delete(insight_key)
+                    return Response({'sucess':False,"message":"No response for Q1"})
+                resp = data["answer"]
+                content = get_evaluation(idx,resp)
+                content = json.loads(content)
+                sc  = int(content["insights"]["score"])
+                if sc is None:
+                    sc =5
 
+                insights = content["insights"]["explaination"]
+                if insights is None:
+                    insights = ""
+                insight_dict = {
+                    "question":pos,
+                    "score":sc,
+                    "Evaluation":insights
+                }
+                redis.rpush(insight_key,json.dumps(insight_dict))
+
+                p_sc = int(redis.hget(key,"scores"))
+                if p_sc is None:
+                    p_sc = 0 
+                scr = str(sc+p_sc)
+             
+               
+                redis.hset(key,"scores",scr)
+              
+                redis.hset(key,q_state,"passed")
+                d = {
+                    "interview_completed":False,
+                    "problem":content["followup"]
+                }
+
+              
+                redis.hset(key,"current_pos",pos+1)
+                return Response({'success':True,"data":d})
+
+            else:
+                return Response({'success':False,"message":"something broke"})
+        else:
+            ques = get_matchs(3)
+            states = {
+                "current_pos": 1,
+                "q1_index": ques[0],
+                "q1_state": "start",
+                "q2_index": ques[1],
+                "q2_state": "start",
+                "q3_index": ques[2],
+                "q3_state": "start",
+                "scores": 0,
+            }
+            
+            redis.hmset(key,states)
+            redis.expire(insight_key, 3600)
+            redis.expire(key,3600)
+
+
+            return Response({'success':True,"Message":"Session started"})
+    except Exception as e:
+        print(e)
+        return Response({'success':False,"error":f"{e}"},status=500)
+        
+
+                
