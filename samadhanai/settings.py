@@ -89,13 +89,13 @@ ROOT_URLCONF = 'samadhanai.urls'
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://sage-gecko-d47eb2.netlify.app"
+    "https://sage-gecko-d47eb2.netlify.app",
 ]
 
 CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
-    "https://sage-gecko-d47eb2.netlify.app",
+    "https://sage-gecko-d47eb2.netlify.app"
 ]
 
 CORS_ALLOW_CREDENTIALS = True

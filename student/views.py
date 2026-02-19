@@ -33,6 +33,7 @@ from student.forms import *
 import random
 from django.core.cache import cache
 from .serializer import *
+import os 
 
 OTP_TTL = 300 
 from .tokens import email_verification_token
@@ -43,36 +44,43 @@ def get_client():
     api_key=DEEPSEEK_API_KEY,
     )
     return client
+def get_groqmodel():
+    from langchain_groq import ChatGroq
+    model = ChatGroq(
+        model_name="openai/gpt-oss-20b",
+        api_key=os.environ["GROQ_API_KEY"],
+        temperature=0.7
+    )
+    return model
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-
 def login_view(request):
     
-    if(request.method == "POST"):
-            data = json.loads(request.body)
-            username = data.get('username')
-            password = data.get('password')
-           
-            user = authenticate(username = username,password=password)
-           
-            if user is not None:
-                
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    "success": True,
-                    "message": "Login successful",
-                    "access": str(refresh.access_token),
-                    "refresh": str(refresh),
-                }, status=status.HTTP_200_OK)
-            else:
-                 return Response({
-                    "success": False,
-                    "message": "Invalid username or password"
-                }, status=status.HTTP_401_UNAUTHORIZED)
-    else:
+    try:
+        data = request.data 
+        username = data.get('username')
+        password = data.get('password')
         
-        return Response({"success":False,"Message":"Something went wrong"})
+        user = authenticate(username = username,password=password)
+        
+        if user is not None:
+            
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "success": True,
+                "message": "Login successful",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            }, status=status.HTTP_200_OK)
+        else:
+                return Response({
+                "success": False,
+                "message": "Invalid username or password"
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        
+        return Response({"success":False,"Message":f"Something went wrong {e}"},status=500)
     
 
 
@@ -138,9 +146,8 @@ def verify_email_otp(request):
 @permission_classes([AllowAny])
 def singup_view(request):
     
-    if request.method == 'POST':
-        data = json.loads(request.body)
-
+    try:
+        data = request.data 
         email = data.get('email')
         username = data.get('username')
         pass1 = data.get('password1')
@@ -150,7 +157,7 @@ def singup_view(request):
             return Response({"success": False, "Message": "All fields are required"}, status=400)
         
         if(pass1 != pass2):
-            return Response({"Success":False,"Message":"Both password same"},status=400)
+            return Response({"Success":False,"Message":"Password Mismatch"},status=400)
         
         if(User.objects.filter(username = username).exists()):
             error = 'user already exist with this username'
@@ -172,7 +179,8 @@ def singup_view(request):
         myuss.save()
            
         return Response({"success":True,"Message":"User Registered Successfully"})
-    return Response({"Success":False,"Message":"Bad request , wrong method"},status=201)
+    except Exception as e:
+        return Response({"Success":False,"Message":"Something went wrong {e}"},status=500)
    
 
 @api_view(['GET'])
