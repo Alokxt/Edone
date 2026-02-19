@@ -8,7 +8,7 @@ It combines Retrieval-Augmented Generation (RAG), semantic caching, and Redis-ba
 
 ## 🌐 Live Demo
 **Live Link:**  
-(Add your Render URL here)
+https://sage-gecko-d47eb2.netlify.app/login.html
 
 ## 📖 Architecture & Design Breakdown
 **Medium Article:**  
