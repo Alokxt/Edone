@@ -33,7 +33,8 @@ from student.forms import *
 import random
 from django.core.cache import cache
 from .serializer import *
-import os 
+import os
+import re  
 
 OTP_TTL = 300 
 from .tokens import email_verification_token
@@ -82,7 +83,11 @@ def login_view(request):
         
         return Response({"success":False,"Message":f"Something went wrong {e}"},status=500)
     
-
+def validate_email(email):
+    pattern = r'^[a-zA-Z0-9._%+-]+@gmail\.com$'
+    if not re.match(pattern, email):
+        return False 
+    return True
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -91,6 +96,10 @@ def send_email_otp(request):
 
     if not email:
         return Response({"message": "Email required"}, status=400)
+    
+    validate = validate_email(email)
+    if not validate:
+        return Response({"success":False,"error":"Invalid email id , try with gmail id"},status=401)
 
     if Myuser.objects.filter(email=email).exists():
         return Response({"message": "Email already registered"}, status=400)
@@ -332,7 +341,7 @@ def predict_performance(request):
         pastper = studies.past_exam_performance
         vals = [av_hrs,per,iq,pastper]
         performance = prediction(vals)
-        print(performance)
+       
         return Response({"success":True,"predictive_performance":performance})
     except Exception as e:
         return Response({"success":False,"error":e})
@@ -363,52 +372,65 @@ def subtopics(request):
 
 
 def generate_test():
-    prompt = '''
-You are an expert aptitude test paper generator used for competitive exams and placement assessments.
+   
+   from langchain_core.prompts import PromptTemplate
+   from langchain_core.output_parsers import JsonOutputParser,StrOutputParser
+  
+   parser = JsonOutputParser()
+   p1 = StrOutputParser()
 
-Generate 5 aptitude test questions suitable for students aged 18+.
+   aptitude_prompt = PromptTemplate(
+        input_variables=[],
+        template="""
+    You are an expert aptitude test paper generator used for competitive exams and placement assessments.
 
-Rules:
-1. Questions must cover quantitative aptitude and logical reasoning, such as:
-   - Arithmetic (percentages, ratios, time & work, speed & distance)
-   - Number series and patterns
-   - Basic probability and averages
-   - Logical reasoning and analytical puzzles
-2. Each question must be medium to hard difficulty (not trivial calculations).
-3. Each question must have exactly 4 options (A, B, C, D).
-4. Mark only ONE correct answer per question.
-5. Do not repeat question styles.
-6. Return the output strictly in the following JSON format (no markdown, no extra text):
+    Generate 5 aptitude test questions suitable for students aged 18+.
 
-{
-    "questions": [
-        {
-            "question": "Question text here",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "answer": "Correct Option (e.g., B)"
-        },
-        {
-            "question": "...",
-            "options": ["...", "...", "...", "..."],
-            "answer": "..."
-        }
-    ]
-}
-'''
-    client = get_client()
-    response = client.chat.completions.create(
-        model="tngtech/deepseek-r1t2-chimera:free",
-        messages=[
-            {"role": "system", "content": "You are an expert IQ test designer"},
-            {"role":"user","content":prompt},
-            
-        ],
-        temperature=0.3,
+    Rules:
+    1. Questions must cover quantitative aptitude and logical reasoning, such as:
+    - Arithmetic (percentages, ratios, time & work, speed & distance)
+    - Number series and patterns
+    - Basic probability and averages
+    - Logical reasoning and analytical puzzles
+    2. Each question must be medium to hard difficulty (not trivial calculations).
+    3. Each question must have exactly 4 options (A, B, C, D).
+    4. Mark only ONE correct answer per question.
+    5. Do not repeat question styles.
+    6. Return the output strictly in the following JSON format (no markdown, no extra text):
+
+    You must return ONLY valid JSON.
+    No explanation.
+    No markdown.
+    No text before or after.
+
+    {{
+        "questions": [
+            {{
+                "question": "Question text here",
+                "options": ["Option A", "Option B", "Option C", "Option D"],
+                "answer": "Correct Option (e.g., B)"
+            }},
+            {{
+                "question": "...",
+                "options": ["...", "...", "...", "..."],
+                "answer": "..."
+            }}
+        ]
+    }}
+    \n
+    {format_instruction}
+    """,
+    partial_variables= {'format_instruction':parser.get_format_instructions()},
     )
-
-
-
-    return response.choices[0].message.content
+   
+   model = get_groqmodel()
+   
+   chain = aptitude_prompt | model | p1 
+   ans = chain.invoke({})
+ 
+   if isinstance(ans, str):
+        ans = json.loads(ans)
+   return ans 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -429,11 +451,12 @@ def register_roadmap(request):
         return Response({'success':False,'error':'Not found'},status=400)
 
 
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@csrf_exempt
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def iq_test_page(request):
     try:
+       
         user_id = request.user.id 
         
         user = get_object_or_404(User,id=user_id)
@@ -443,40 +466,41 @@ def iq_test_page(request):
             'clear':False,
             'score':0.0,
         })
+
        
         if stdnt.needs_quiz() == True:
             
             if created == True:
-                
                 quize = generate_test()
+
                 test.test_data = quize
                 test.save()
-                
+                return Response({"success":True,"Quize_required":True,"Quiz":quize})
             elif test.clear == False:
                 quize = test.test_data
+                return Response({"success":True,"Quize_required":True,"Quiz":quize})
             else:
                 quize = generate_test()
                 test.test_data = quize
                 test.save()
-
-            return Response({"success":True,"Quize_required":True,"Quiz":quize})
+                return Response({"success":True,"Quize_required":True,"Quiz":quize})
+        score = test.score
         
-        marks = test.score 
-        return Response({"success":True,"quiz_required":False,"Marks":1})
+        return Response({"success":True,"Quize_required":False,"Marks":score})
+        
     except Exception as e:
         return Response({"success":False,"error":e})
     
 
-@csrf_exempt
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_iq_test(request):
     try:
         user_id = request.user.id 
-        data = json.loads(request.body)
+        data = request.data 
         score = data.get('score')
-        if not user_id:
-            user_id = 2
+       
         usr = get_object_or_404(User,id=user_id)
         myusr = get_object_or_404(Myuser,student=usr)
         iq = get_object_or_404(iq_test,student=myusr)
@@ -550,7 +574,7 @@ def profile_page(request):
         exams = []
         for p in perps:
             exams.append(p.exam.name)
-        print(my_usr.profile.url)
+        
         data = {
             "username":usr.username,
             "email":my_usr.email,

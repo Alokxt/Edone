@@ -38,7 +38,7 @@ DEFAULT_FROM_EMAIL = "alokmanawat6@gmail.com"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["edone-t588.onrender.com"]
+ALLOWED_HOSTS = ["edone-t588.onrender.com",]
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
@@ -89,13 +89,13 @@ ROOT_URLCONF = 'samadhanai.urls'
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://sage-gecko-d47eb2.netlify.app",
+    "https://sage-gecko-d47eb2.netlify.app","https://ed1one.netlify.app",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = False  
 
 CORS_ALLOWED_ORIGINS = [
-    "https://sage-gecko-d47eb2.netlify.app"
+    "https://sage-gecko-d47eb2.netlify.app","https://ed1one.netlify.app"
 ]
 
 CORS_ALLOW_CREDENTIALS = True

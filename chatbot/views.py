@@ -467,7 +467,7 @@ def chatbot_api(request):
 
         return Response({"success": True, "answer": llm_response, "cache": "new"})
     except Exception as e:
-        print(e)
+       
         return Response({"success":False,"error":f"{e}"},status=500)
 
     
@@ -592,6 +592,8 @@ def chatvideo(request):
     try:
        data = request.data 
        session_id = data['session_id']
+       if not session_id:
+           return Response({'success':False,"Message":"No previous session found/session timeout"})
        usr = request.user
        query = data['query']
 
@@ -642,8 +644,7 @@ def quiz_generator(request):
         )
         num_ques = data.get('num_ques')
         num_ques = int(num_ques)
-        print(topics)
-        print(num_ques)
+       
 
         context = " ".join(x.page_content for x in docs )
         metadata = docs[0].metadata
@@ -828,7 +829,7 @@ def Interview_simulator(request):
 
             return Response({'success':True,"Message":"Session started"})
     except Exception as e:
-        print(e)
+      
         return Response({'success':False,"error":f"{e}"},status=500)
         
 
